@@ -1,0 +1,29 @@
+#!/bin/bash
+#set -x
+
+PATH="/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin"
+TERM="vt100"
+export TERM PATH
+
+if [ -d "/etc/hostapd" ]; then
+    my_hostapd_configs=$(find /etc/hostapd -maxdepth 1 -type f -iname "hostapd-radio*.conf" 2> /dev/null)
+
+    if [ -n "${my_hostapd_configs}" ]; then
+        this_hour=$(echo "$(date +%H)*1" | bc)
+	this_hostapd_config=$(egrep -Hi "^channel=${this_hour}$" /etc/hostapd/hostapd-radio*.conf | awk -F':' '{print $1}')
+    fi
+
+    if [ -n "${this_hostapd_config}" ]; then
+        this_systemctl_service=$(basename "$(echo "${this_hostapd_config}" | sed -e 's|\.||g' -e 's|conf$||g')")
+    fi
+
+    if [ -n "${this_systemctl_service}" ]; then
+        sleep $(echo "$RANDOM%300" | bc)                                                               &&
+        systemctl stop ${this_systemctl_service} 2>&1 | logger -t "CHANNEL ${this_hour} WIFI RESTART"  &&
+        sleep 5                                                                                        &&
+        systemctl start ${this_systemctl_service} 2>&1 | logger -t "CHANNEL ${this_hour} WIFI RESTART"
+    fi
+
+fi
+
+exit 0

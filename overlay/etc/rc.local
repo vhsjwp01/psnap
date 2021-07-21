@@ -1,0 +1,282 @@
+#!/bin/bash
+#set -x
+
+PATH="/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin"
+TERM="vt100"
+export PATH TERM
+
+SUCCESS=0
+ERROR=1
+
+exit_code=${SUCCESS}
+
+hostapd_systemd_template="/etc/default/hostapd-systemd.template"
+hostapd_template="/etc/default/hostapd.template"
+radio_vif_config="/etc/default/radio_vifs"
+eths_down="/etc/default/eths_down"
+
+### Set this host up as a WIFI Access Point
+nono_services="                  \
+    systemd-networkd.socket      \
+    systemd-networkd             \
+    networkd-dispatcher          \
+    systemd-networkd-wait-online \
+    systemd-resolved             \
+    network-manager              \
+    networking                   \
+    wpa_supplicant               \
+    hostapd"
+
+for i in ${nono_services} ; do
+    systemctl stop ${i} > /dev/null 2>&1
+    systemctl disable ${i} > /dev/null 2>&1
+done
+
+# 1 - Run dhclient against our uplink NIC
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+    short_hostname=$(hostname | awk -F'.' '{print $1}')
+
+    if [ -e "/etc/default/relevant_nics" ]; then
+        source "/etc/default/relevant_nics" &&
+        dhclient -1 -4 ${uplink_nic}
+	let exit_code+=${?}
+    else
+	let exit_code+=${ERROR}
+    fi
+
+    echo "RC.LOCAL - STEP 1 - exit code=${exit_code}" > /tmp/rc.local.log
+fi
+
+# 2 - Setup LAN NIC alias, AP Bridge, and DHCP services
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+    default_gateway=$(route -n | egrep "^\b0\.0\.0\.0\b.*\b${uplink_nic}\b$" | awk '{print $2}')
+    dns_server=$(egrep "^\bnameserver\b" /etc/resolv.conf | awk '{print $NF}')
+    first_octet=$(ip addr show ${uplink_nic} | egrep "\binet\b" | awk '{print $2}' | awk -F'.' '{print $1}')
+
+    if [ -z "${dns_server}" ]; then
+        dns_server="1.1.1.1"
+    fi
+
+    # Define DHCP settings
+    if [ -n "${default_gateway}" -a -n "${dns_server}" -a -n "${first_octet}" ]; then
+        option_domain_name_servers="${dns_server}"
+        netmask="255.255.255.0"
+        short_netmask="24"
+
+        case ${first_octet} in
+
+            "192")
+                dhcp_range="172.16.0.0"
+                dhcp_lower_limit="172.16.0.1"
+                dhcp_upper_limit="172.16.0.253"
+                option_broadcast_address="172.16.0.255"
+                option_routers="172.16.0.254"
+            ;;
+
+            "172")
+                dhcp_range="10.0.0.0"
+                dhcp_lower_limit="10.0.0.1"
+                dhcp_upper_limit="10.0.0.253"
+                option_broadcast_address="10.0.0.255"
+                option_routers="10.0.0.254"
+            ;;
+
+            *)
+                dhcp_range="192.168.1.0"
+                dhcp_lower_limit="192.168.1.1"
+                dhcp_upper_limit="192.168.1.253"
+                option_broadcast_address="192.168.1.255"
+                option_routers="192.168.1.254"
+            ;;
+
+        esac
+
+    fi
+
+    echo "RC.LOCAL - STEP 2 - exit code=${exit_code}" >> /tmp/rc.local.log
+fi
+
+# 3 - Create a bridge for LAN traffic
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+    bridge_ifname="${short_hostname}-bridge"
+
+    brctl addbr ${bridge_ifname}  &&
+    brctl stp ${bridge_ifname} on
+    let exit_code+=${?}
+
+    echo "RC.LOCAL - STEP 3 - exit code=${exit_code}" >> /tmp/rc.local.log
+fi
+
+# 4 - Give that bridge an IP
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+    ifconfig ${bridge_ifname} up                                                                         &&
+    ifconfig ${bridge_ifname} ${option_routers} netmask ${netmask} broadcast ${option_broadcast_address} &&
+    route add -net ${dhcp_range}/${short_netmask} gw ${option_routers} dev ${bridge_ifname}
+    let exit_code+=${?}
+
+    echo "RC.LOCAL - STEP 4 - exit code=${exit_code}" >> /tmp/rc.local.log
+fi
+
+# 5 - Create radio interface for hostapd if missing
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+    radio_vif_lines=$(egrep -v "^#" "${radio_vif_config}")
+
+    for radio_vif_line in ${radio_vif_lines} ; do
+        iw_pif=$(echo "${radio_vif_line}" | awk -F':' '{print $1}')
+        hostapd_vif=$(echo "${radio_vif_line}" | awk -F':' '{print $2}')
+        ap_ssid=$(echo "${radio_vif_line}" | awk -F':' '{print $4}')
+        ap_hw_mode=$(echo "${radio_vif_line}" | awk -F':' '{print $5}')
+        ap_channel=$(echo "${radio_vif_line}" | awk -F':' '{print $6}')
+	ap_passphrase=$(echo "${radio_vif_line}" | awk -F':' '{print $NF}'| base64 -d)
+        hostapd_service=$(echo "${hostapd_vif}" | sed -e 's|\.||g')
+    
+        let hostapd_vif_check=$(ifconfig -a | egrep -c "^${hostapd_vif}:")
+        
+        if [ ${hostapd_vif_check} -eq 0 ]; then
+
+            # Disable any nics defined in '${eths_down}'
+            if [ -s "${eths_down}" ]; then
+                eths_to_disable=$(ifconfig | egrep $(egrep -v "^#" "${eths_down}") | awk -F':' '{print $1}')
+
+                if [ -n "${eths_to_disable}" ]; then
+
+                    for eth_to_disable in ${eths_to_disable} ; do
+                        ifconfig ${eth_to_disable} down
+                    done
+		    
+                fi
+
+            fi
+        
+            # Create virtual nics against the given physical radio
+            if [ -n "${iw_pif}" ]; then
+                iw phy ${iw_pif} interface add ${hostapd_vif} type managed &&
+                iw dev ${hostapd_vif} set power_save off  > /dev/null 2>&1
+                ifconfig ${hostapd_vif} up                                 &&
+		ifconfig ${hostapd_vif} down
+            else
+                false
+            fi
+
+        fi
+
+        if [ ${?} -eq ${SUCCESS} ]; then
+
+            if [ ! -e "/etc/hostapd/hostapd-${hostapd_vif}.conf" -a -e "${hostapd_template}" ]; then
+		mac_no_colons=$(ifconfig ${hostapd_vif} | egrep "\bether\b" | awk '{print $2}' | sed -e 's|:||g')
+                sed -e "s|::AP_BRIDGE::|${bridge_ifname}|g" -e "s|::MAC_NO_COLONS::|${mac_no_colons}|g" -e "s|::SHORT_HOSTNAME::|${short_hostname}|g" -e "s|::RADIO_VIF::|${hostapd_vif}|g" -e "s|::AP_SSID::|${ap_ssid}|g" -e "s|::AP_HW_MODE::|${ap_hw_mode}|g" -e "s|::AP_CHANNEL::|${ap_channel}|g" -e "s|::AP_PASSPHRASE::|${ap_passphrase}|g" "${hostapd_template}" > "/etc/hostapd/hostapd-${hostapd_vif}.conf"
+            fi
+
+        fi
+
+        if [ ${?} -eq ${SUCCESS} ]; then
+
+	    if [ ! -e "/lib/systemd/system/hostapd-${hostapd_service}.service" -a "${hostapd_systemd_template}" ]; then
+                sed -e "s|::HOSTAPD_VIF::|${hostapd_vif}|g" "${hostapd_systemd_template}" > "/lib/systemd/system/hostapd-${hostapd_service}.service" &&
+                systemctl enable hostapd-${hostapd_service} > /dev/null 2>&1
+            fi
+
+        fi
+
+        let exit_code+=${?}
+    done
+
+    echo "RC.LOCAL - STEP 5 - exit code=${exit_code}" >> /tmp/rc.local.log
+fi
+
+# 6 - Restart (or start) hostapd
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+    radio_vif_lines=$(egrep -v "^#" "${radio_vif_config}")
+
+    for radio_vif_line in ${radio_vif_lines} ; do
+        hostapd_vif=$(echo "${radio_vif_line}" | awk -F':' '{print $2}')
+        hostapd_service=$(echo "${hostapd_vif}" | sed -e 's|\.||g')
+        hostapd_status=$(systemctl status hostapd-${hostapd_service} | egrep -i "^ *Active:" | awk '{print $2}')
+
+        if [ "${hostapd_status}" != "active" ]; then
+            systemctl restart hostapd-${hostapd_service} 
+            let exit_code+=${?}
+        fi
+
+    done
+
+    echo "RC.LOCAL - STEP 6 - exit code=${exit_code}" >> /tmp/rc.local.log
+fi
+
+# 7 - Restart (or start) dhcp
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+
+    if [ -s "/etc/default/isc-dhcp-server" ]; then
+        sed -i -e "s|^\\(INTERFACESv6=.*$\\)|#\\1|g" "/etc/default/isc-dhcp-server"                    &&
+        sed -i -e "s|^\\(INTERFACESv4=\\).*$|\\1\"${bridge_ifname}\"|g" "/etc/default/isc-dhcp-server" &&
+        sed -e "s|::OPTION_BROADCAST_ADDRESS::|${option_broadcast_address}|g" -e "s|::OPTION_ROUTERS::|${option_routers}|g" -e "s|::OPTION_DOMAIN_NAME_SERVERS::|${option_domain_name_servers}|g" -e "s|::DHCP_RANGE::|${dhcp_range}|g" -e "s|::DHCP_LOWER_LIMIT::|${dhcp_lower_limit}|g" -e "s|::DHCP_UPPER_LIMIT::|${dhcp_upper_limit}|g" "/etc/default/dhcpd.conf.template" > "/etc/dhcp/dhcpd.conf"
+    fi
+
+    systemctl stop    isc-dhcp-server6.service > /dev/null 2>&1
+    systemctl disable isc-dhcp-server6.service > /dev/null 2>&1
+    systemctl enable  isc-dhcp-server.service  > /dev/null 2>&1
+    systemctl restart isc-dhcp-server.service  > /dev/null 2>&1
+    let exit_code+=${?}
+
+    echo "RC.LOCAL - STEP 7 - exit code=${exit_code}" >> /tmp/rc.local.log
+fi
+
+# 8 - Setup IP Forwarding and Masquerading
+if [ ${exit_code} -eq ${SUCCESS} ]; then
+
+    # Explicitly disable ECN
+    if [ -e /proc/sys/net/ipv4/tcp_ecn ]; then
+        echo "0" > /proc/sys/net/ipv4/tcp_ecn
+    fi
+
+    # Disable spoofing on all interfaces
+    for i in ${uplink_nic} ${bridge_ifname} ; do
+        echo "1" > /proc/sys/net/ipv4/conf/${i}/rp_filter
+    done
+
+    # Flush all iptables chains/firewall rules
+    iptables -F
+     
+    # Delete all iptables chains
+    iptables -X
+    
+    # Flush all counters, too
+    iptables -Z
+
+    # Flush and delete all nat and mangle
+    for i in nat mangle raw ; do
+        iptables -t ${i} -F
+        iptables -t ${i} -X
+    done
+
+    let exit_code+=${?}
+
+    # Set the default policy for INPUT, OUTPUT, and FORWARD to DROP
+    iptables -P INPUT   DROP
+    iptables -P OUTPUT  DROP
+    iptables -P FORWARD DROP
+
+    # Accept outside traffic for connections initiated from the inside
+    iptables -A INPUT   -m state --state ESTABLISHED,RELATED -j ACCEPT
+    iptables -A OUTPUT  -m state --state ESTABLISHED,RELATED -j ACCEPT
+    iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+    # Enable Masquerading
+    iptables -t nat -A POSTROUTING -o ${uplink_nic} -j MASQUERADE
+
+    # Enable IP Forwarding
+    echo "1" > /proc/sys/net/ipv4/ip_forward
+
+     # Accept traffic from the inside
+    iptables -A INPUT   -m state --state NEW,ESTABLISHED,RELATED ! -i ${uplink_nic} -j ACCEPT
+    iptables -A OUTPUT  -m state --state NEW,ESTABLISHED,RELATED ! -o ${uplink_nic} -j ACCEPT
+    iptables -A FORWARD -m state --state NEW,ESTABLISHED,RELATED ! -i ${uplink_nic} -j ACCEPT
+
+    # Silently deny unwanted traffic from the outside
+    iptables -A INPUT   -p tcp -i ${uplink_nic} -j REJECT --reject-with tcp-reset
+    iptables -A INPUT   -p udp -i ${uplink_nic} -j REJECT --reject-with icmp-port-unreachable
+
+    echo "RC.LOCAL - STEP 8 - exit code=${exit_code}" >> /tmp/rc.local.log
+fi
+
+exit ${exit_code}

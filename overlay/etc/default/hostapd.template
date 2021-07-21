@@ -1,0 +1,127 @@
+# Wireless interface
+interface=::RADIO_VIF::
+
+# Add interface to bridge once up
+bridge=::AP_BRIDGE::
+
+# Driver interface type
+driver=nl80211
+
+# Country Code
+country_code=US
+
+# SSID
+ssid=::AP_SSID::
+
+# Operation mode
+hw_mode=::AP_HW_MODE::
+
+# Channel number
+channel=::AP_CHANNEL::
+
+# Maximum number of stations allowed
+#max_num_sta=5
+
+# Authorized algorithms bitfield
+# 1 = WPA
+# 2 = WEP
+# 3 = both
+auth_algs=1
+
+# Flag to ignore the broadcast SSID
+ignore_broadcast_ssid=0
+
+# WPA version bitfield
+# 1 = WPA
+# 2 = WPA2
+wpa=2
+
+# WPA passphrase (everything to the right of the '=')
+wpa_passphrase=::AP_PASSPHRASE::
+
+# Set of accepted key management algorithms
+wpa_key_mgmt=WPA-PSK
+
+# Set of accepted cipher suites
+wpa_pairwise=TKIP CCMP
+rsn_pairwise=CCMP
+
+# Enable IEEE 802.11i/RSN/WPA2 pre-authentication. This is used to speed up
+# roaming by pre-authenticating IEEE 802.1X/EAP part of the full RSN
+# authentication and key handshake before actually associating with a new AP.
+#rsn_preauth=1
+
+# QoS support
+wmm_enabled=1
+
+# Enable 802.11n support
+ieee80211n=1
+
+# Use 'iw list' to show device capabilities and modify ht_capab accordingly
+#ht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]
+
+# Enable mac address based ACL filtering
+#macaddr_acl=1
+
+# Allowed mac address file
+#accept_mac_file=/etc/hostapd/mac_addresses.allow
+
+# Denied mac address file
+#deny_mac_file=/etc/hostapd/mac_addresses.deny
+
+# Set the airtime policy operating mode:
+# 0 = disabled (default)
+# 1 = static config
+# 2 = per-BSS dynamic config
+# 3 = per-BSS limit mode
+#airtime_mode=2
+
+# Interval (in milliseconds) to poll the kernel for updated station activity in
+# dynamic and limit modes
+#airtime_update_interval=200
+
+# Static configuration of station weights (when airtime_mode=1). Kernel default
+# weight is 256; set higher for larger airtime share, lower for smaller share.
+# Each entry is a MAC address followed by a weight.
+#airtime_sta_weight=02:01:02:03:04:05 256
+#airtime_sta_weight=02:01:02:03:04:06 512
+
+# Per-BSS airtime weight. In multi-BSS mode, set for each BSS and hostapd will
+# configure station weights to enforce the correct ratio between BSS weights
+# depending on the number of active stations. The *ratios* between different
+# BSSes is what's important, not the absolute numbers.
+# Must be set for all BSSes if airtime_mode=2 or 3, has no effect otherwise.
+#airtime_bss_weight=1
+
+# Whether the current BSS should be limited (when airtime_mode=3).
+#
+# If set, the BSS weight ratio will be applied in the case where the current BSS
+# would exceed the share defined by the BSS weight ratio. E.g., if two BSSes are
+# set to the same weights, and one is set to limited, the limited BSS will get
+# no more than half the available airtime, but if the non-limited BSS has more
+# stations active, that *will* be allowed to exceed its half of the available
+# airtime.
+#airtime_bss_limit=1
+#
+
+# Fast transitioning
+#rsn_preauth=1
+#rsn_preauth_interfaces=::AP_BRIDGE::
+#
+#mobility_domain=::MOBILITY_DOMAIN::
+#pmk_r1_push=1
+#
+#nas_identifier=::SHORT_HOSTNAME::-::RADIO_VIF::
+#r1_key_holder=::MAC_NO_COLONS::
+#
+#r0kh=ff:ff:ff:ff:ff:ff * ::FT_AES_KEY::
+#r1kh=00:00:00:00:00:00 00:00:00:00:00:00 ::FT_AES_KEY::
+
+# -----------
+# References:
+# -----------
+# https://www.cberner.com/2013/02/03/using-hostapd-on-ubuntu-to-create-a-wifi-access-point/
+# https://w1.fi/cgit/hostap/plain/hostapd/hostapd.conf
+# https://wireless.wiki.kernel.org/en/users/documentation/hostapd
+# https://bugzilla.redhat.com/show_bug.cgi?id=1200496
+

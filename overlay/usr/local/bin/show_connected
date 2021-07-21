@@ -1,0 +1,51 @@
+#!/bin/bash
+#set -x
+
+PATH="/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin"
+TERM="vt100"
+export TERM PATH
+
+default_arg="-s"
+default_cmd="iw dev ::radio:: station dump"
+cmd=""
+cmd_args=""
+
+radio_vif_config="/etc/default/radio_vifs"
+radio_vifs=$(egrep -v "^#" "${radio_vif_config}" | awk -F':' '{print $2}')
+
+my_arg="${1}"
+
+if [ -z "${my_arg}" ]; then
+    my_arg="${default_arg}"
+fi
+
+case ${my_arg} in
+
+    "-a")
+        cmd="${default_cmd}"
+    ;;
+
+    "-s")
+        cmd="${default_cmd}"
+        cmd_args="| egrep -i \"^station|authorized|authenticated|associated|connected\""
+    ;;
+
+esac
+
+if [ -n "${radio_vifs}" ]; then
+
+    for radio_vif in ${radio_vifs} ; do
+        cmd=$(echo "${cmd}" | sed -e "s|::radio::|${radio_vif}|g")
+        echo
+        echo "------------------------------------------------------------"
+        echo "Host: $(hostname)"
+        echo "Radio: ${radio_vif}"
+        echo "Timestamp: $(date)"
+        echo "------------------------------------------------------------"
+        eval "${cmd} ${cmd_args}"
+        cmd=$(echo "${cmd}" | sed -e "s|${radio_vif}|::radio::|g")
+    done
+fi
+
+exit 0
+
