@@ -9,6 +9,7 @@ export TERM PATH
 utilities="          \
     bc               \
     bridge-utils     \
+    coreutils        \
     curl             \
     ethtool          \
     git              \

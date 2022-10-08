@@ -20,6 +20,10 @@ while [ -z "${raw_wifi_nic}" ]; do
     read -p "Enter the RAW WIFI NIC name: " raw_wifi_nic
 done
 
+while [ -z "${wifi_pass_phrase}" ]; do
+    read -p "Enter the WI-FI passphrase you want to use: " wifi_pass_phrase
+done
+
 echo
 
 # Find all files
