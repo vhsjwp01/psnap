@@ -92,6 +92,8 @@ if [ -d "${this_dir}/overlay" ]; then
 
 fi
 
+exit 0
+
 
 ## NOTES
 #
