@@ -13,12 +13,29 @@ my_nics=$(ifconfig -a | awk -F':' '/^[a-z]/ {print $1}')
 nics=(${my_nics})
 
 while [ -z "${uplink_nic_index}" ]; do
-    read -p "Select the Uplink Network Interface: " uplink_nic_index
+    let counter=0
 
-    if [ -z "${nics[$uplink_nic_index]}" ]; then
-        uplink_nic_index=""
-        echo "    invalid choice ... please choose again"
-        echo
+    for nic in ${nics[*]} ; do
+        echo "    ${counter}: ${nic}"
+        let counter+=1
+    done
+
+    echo
+    read -p "Select the Uplink Network Interface: " uplink_nic_index
+    uplink_nic_index=$(echo "${uplink_nic_index=}" | sed -e 's|[^0-9]||g')
+
+    if [ -n "${uplink_nic_index}" ]; then
+
+        if [ 0 -le ${uplink_nic_index} -a ${uplink_nic_index} -le ${#nics[*]} ]; then
+            true
+        else
+            uplink_nic_index=""
+            echo "    invalid choice ... please choose again"
+            echo
+        fi
+
+    else
+        echo "    Uplink interface choice cannot be blank ... please choose again"
     fi
 
 done
@@ -28,12 +45,33 @@ uplink_nic="${nics[$uplink_nic_index]}"
 echo
 
 while [ -z "${wifi_nic_index}" ]; do
-    read -p "Select the WIFI Network Interface: " wifi_nic_index
+    let counter=0
 
-    if [ -z "${nics[$wifi_nic_index]}" ]; then
-        wifi_nic_index=""
-        echo "    invalid choice ... please choose again"
-        echo
+    for nic in ${nics[*]} ; do
+        echo "    ${counter}: ${nic}"
+        let counter+=1
+    done
+
+    echo
+    read -p "Select the WIFI Network Interface: " wifi_nic_index
+    wifi_nic_index=$(echo "${wifi_nic_index=}" | sed -e 's|[^0-9]||g')
+
+    if [ -n "${wifi_nic_index}" ]; then
+
+        if [ "${wifi_nic_index}" = "${uplink_nic_address}" ]; then
+            wifi_nic_index=""
+            echo "    Upload and WIFI interfaces cannot be the same"
+            echo
+        elif [ 0 -le ${uplink_nic_index} -a ${uplink_nic_index} -le ${#nics[*]} ]; then
+            true
+        else
+            wifi_nic_index=""
+            echo "    invalid choice ... please choose again"
+            echo
+        fi
+
+    else
+        echo "    WIFI interface choice cannot be blank ... please choose again"
     fi
 
 done
