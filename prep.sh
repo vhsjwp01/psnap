@@ -20,6 +20,7 @@ utilities="          \
     iftop            \
     ifupdown         \
     iotop            \
+    iptables         \
     isc-dhcp-server  \
     iw               \
     jq               \
