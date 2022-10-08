@@ -1,5 +1,7 @@
 PLATFORM	= $(shell uname -s)
 
+.PHONY: overlay
+
 overlay:
 	./overlay.sh
 

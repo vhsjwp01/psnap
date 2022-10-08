@@ -8,17 +8,37 @@ export TERM PATH
 # VARIABLE REPLACEMENT
 echo
 
-ifconfig -a | awk -F':' '/^[a-z]/ {print $1}'
+my_nics=$(ifconfig -a | awk -F':' '/^[a-z]/ {print $1}')
 
-while [ -z "${uplink_nic}" ]; do
-    read -p "Enter the Uplink NIC name: " uplink_nic
+nics=(${my_nics})
+
+while [ -z "${uplink_nic_index}" ]; do
+    read -p "Select the Uplink Network Interface: " uplink_nic_index
+
+    if [ -z "${nics[$uplink_nic_index]}" ]; then
+        uplink_nic_index=""
+        echo "    invalid choice ... please choose again"
+        echo
+    fi
+
 done
+
+uplink_nic="${nics[$uplink_nic_index]}"
 
 echo
 
-while [ -z "${raw_wifi_nic}" ]; do
-    read -p "Enter the RAW WIFI NIC name: " raw_wifi_nic
+while [ -z "${wifi_nic_index}" ]; do
+    read -p "Select the WIFI Network Interface: " wifi_nic_index
+
+    if [ -z "${nics[$wifi_nic_index]}" ]; then
+        wifi_nic_index=""
+        echo "    invalid choice ... please choose again"
+        echo
+    fi
+
 done
+
+raw_wifi_nic="${nics[$wifi_nic_index]}"
 
 echo
 
