@@ -1,37 +1,11 @@
 #!/bin/bash
 
 # Install available needed things from default repo(s)
-apt update
-apt install -y  \
-    lsb-release \
-    sudo
-
-# APT sources to enable
-my_codename=$(lsb_release -cs)
-non_free_source_list="/etc/apt/sources.list.d/non-free.list"
-
-if [ -e "${non_free_source_list}" ]; then
-    mv "${non_free_source_list}" ".#${non_free_source_list}.BAK"
-fi
-
-echo "deb http://deb.debian.org/debian ${my_codename} non-free"                       | sudo tee -a "${non_free_source_list}"
-echo "deb-src http://deb.debian.org/debian buster non-free"                           | sudo tee -a "${non_free_source_list}"
-echo ""                                                                               | sudo tee -a "${non_free_source_list}"
-echo "deb http://deb.debian.org/debian-security/ ${my_codename}/updates non-free"     | sudo tee -a "${non_free_source_list}"
-echo "deb-src http://deb.debian.org/debian-security/ ${my_codename}/updates non-free" | sudo tee -a "${non_free_source_list}"
-echo ""                                                                               | sudo tee -a "${non_free_source_list}"
-echo "deb http://deb.debian.org/debian ${my_codename}-updates non-free"               | sudo tee -a "${non_free_source_list}"
-echo "deb-src http://deb.debian.org/debian ${my_codename}-updates non-free"           | sudo tee -a "${non_free_source_list}"
-echo ""                                                                               | sudo tee -a "${non_free_source_list}"
-
 utilities="          \
     bc               \
     bridge-utils     \
     curl             \
     ethtool          \
-    firmware-realtek \
-    firmware-ralink  \
-    firmware-iwlwifi \
     git              \
     gnupg            \
     gnupg1           \
@@ -40,18 +14,18 @@ utilities="          \
     htop             \
     iftop            \
     ifupdown         \
-    inxi coreutils   \
     iotop            \
     isc-dhcp-server  \
     iw               \
     jq               \
-    make             \
+    lsb-release      \
     net-tools        \
     ntp              \
     ntpdate          \
     openssh-server   \
     rsync            \
     screen           \
+    sudo             \
     uuid-runtime     \
     vim              \
     wget             \
@@ -59,7 +33,6 @@ utilities="          \
 
 apt update
 apt install -y ${utilities}
-
 
 # Turn off unwanted services
 unwanted_services="
