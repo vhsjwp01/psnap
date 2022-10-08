@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 
 PATH="/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin"
 TERM="vt100"
@@ -7,6 +7,8 @@ export TERM PATH
 
 # VARIABLE REPLACEMENT
 echo
+
+ifconfig -a | awk -F':' '/^[a-z]/ {print $1}'
 
 while [ -z "${uplink_nic}" ]; do
     read -p "Enter the Uplink NIC name: " uplink_nic

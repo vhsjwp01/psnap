@@ -1,4 +1,9 @@
 #!/bin/bash
+#set -x
+
+PATH="/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin"
+TERM="vt100"
+export TERM PATH
 
 # Install available needed things from default repo(s)
 utilities="          \
@@ -31,8 +36,11 @@ utilities="          \
     wget             \
     wireless-tools"
 
-apt update
-apt install -y ${utilities}
+echo "Updating apt source manifests"
+apt update -qq > /dev/null 2>&1
+
+echo "Installing needed packages"
+apt install -y ${utilities} > /dev/null 2>&1
 
 # Turn off unwanted services
 unwanted_services="
@@ -46,15 +54,18 @@ unwanted_services="
     wpa_supplicant
     hostapd"
 
+echo "Turning off unwanted services"
+
 for i in ${unwanted_services} ; do
-    systemctl stop ${i}
-    systemctl disable ${i}
+    systemctl stop ${i} > /dev/null 2>&1
+    systemctl disable ${i} > /dev/null 2>&1
 done
 
 # Turn off graphical login and boot
-systemctl set-default multi-user
-sed -i -e 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)splash\(.*\)$|\1\2|g' /etc/default/grub
-update-grub
+echo "Disabling graphical boot"
+systemctl set-default multi-user > /dev/null 2>&1
+sed -i -e 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)splash\(.*\)$|\1\2|g' /etc/default/grub > /dev/null 2>&1
+update-grub > /dev/null 2>&1
 
 # uninstall unneeded things
 unneeded_services=" \
@@ -63,9 +74,11 @@ unneeded_services=" \
     plymouth        \
     netplan.io"
 
+echo "Uninstalling unneeded resources"
+
 for i in ${unneeded_services} ; do
-    apt remove -y ${i}
-    apt purge -y ${i}
+    apt remove -y ${i} > /dev/null 2>&1
+    apt purge -y ${i} > /dev/null 2>&1
 done
 
 # Delete unneeded things
@@ -74,8 +87,10 @@ unneeded_things="
     /etc/dhcp/dhclient-enter-hooks.d/resolved \
     /etc/resolv*"
 
+echo "Deleting unneeded resources"
+
 for i in ${unneeded_things} ; do
-    eval "rm -rf ${i}"
+    eval "rm -rf ${i}" > /dev/null 2>&1
 done
 
-
+exit 0
