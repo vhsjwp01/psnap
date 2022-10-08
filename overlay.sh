@@ -20,9 +20,18 @@ while [ -z "${raw_wifi_nic}" ]; do
     read -p "Enter the RAW WIFI NIC name: " raw_wifi_nic
 done
 
+echo
+
+while [ -z "${ap_ssid}" ]; do
+    read -p "What SSID name would you like: " ap_ssid
+done
+
+echo
+
 while [ -z "${wifi_pass_phrase}" ]; do
     read -p "Enter the WI-FI passphrase you want to use: " wifi_pass_phrase
 done
+
 
 echo
 
@@ -48,6 +57,27 @@ if [ -d "${this_dir}/overlay" ]; then
                 copy_command="sed -e 's|::UPLINK_NIC::|${uplink_nic}|g' -e 's|::RAW_WIFI_NIC::|${raw_wifi_nic}|g' '${overlay_file}' > '${target_path}/${target_file}'"
             ;;
 
+            radio_vifs)
+                ap_hw_mode="g"
+                ap_passphrase=$(echo -ne "${wifi_pass_phrase}" | base64)
+                frequency="2.4"
+                iw_device_index=$(iw ${raw_wifi_nic} info | awk '/wiphy/ {print $NF}')
+                physical_radio_device="phy${iw_device_index}"
+
+                let supports_5GHz=$(iw ${iw_phy_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
+
+                if [ ${supports_5GHz=} -gt 0 ]; then
+                    ap_hw_mode="a"
+                    frequency="5.0"
+                fi
+
+                radio_vif="radio${iw_device_infex}-${frequency}"
+                ap_bridge="$(echo "${ap_ssid}" | tr '[A-Z]' '[a-z]' | sed -e 's|[_-]| |g' -e 's|  *| |g' -e 's|\([a-z]\)[a-z]\?$|\1|g' -e 's|\([a-z]\)[a-z]* |\1|g')-bridge"
+
+                # <physical_radio_device>:<radio_vif>:<ap_bridge>:<ap_ssid>:<ap_hw_mode>:<ap_channel>:<ap_passphrase base64 encoded>
+                copy_command="cp '${overlay_file}' '${target_path}/${target_file}' && echo '${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:0:${ap_passphrase}' >> '${target_path}/${target_file}'"
+            ;;
+
             *)
                 copy_command="cp '${overlay_file}' '${target_path}/${target_file}'"
             ;;
@@ -65,22 +95,9 @@ fi
 
 ## NOTES
 #
-## This get executed as-is ... no replacement needed
+## This gets executed as-is ... no replacement needed
 #./overlay/etc/rc.local
 #
 ## These are templates ... no replacement needed
 #./overlay/etc/default/hostapd-systemd.template
-#./overlay/etc/default/hostapd.template
-#
-## Needs to be replaced with values
-#./overlay/etc/default/wifi_ap_config:bridge_ifname="::BRIDGE_IFNAME::"
-#./overlay/etc/default/wifi_ap_config:bridge_ip="::BRIDGE_IP::"
-#./overlay/etc/default/wifi_ap_config:bridge_gateway="::BRIDGE_GATEWAY::"
-#./overlay/etc/default/wifi_ap_config:bridge_subnet="::BRIDGE_SUBNET::"
-#
-## Needs to be replaced with values
-#./overlay/etc/mac_allow_list/mac_allow_list.conf:db="::MAC_ALLOW_DB::"
-#./overlay/etc/mac_allow_list/mac_allow_list.conf:db_host="::DB_HOST::"
-#./overlay/etc/mac_allow_list/mac_allow_list.conf:db_port="::DB_PORT::"
-#./overlay/etc/mac_allow_list/mac_allow_list.conf:db_user="::DB_USER::"
-#./overlay/etc/mac_allow_list/mac_allow_list.conf:db_password="::DB_PASSWORD::"
+#./overlay/etc/default/hostapd.x.x.template
