@@ -101,7 +101,12 @@ fi
 if [ ${exit_code} -eq ${SUCCESS} ]; then
     bridge_ifname="${short_hostname}-bridge"
 
-    brctl addbr ${bridge_ifname}  &&
+    let bridge_exists=$(ifconfig -a | egrep -c "^${bridge_ifname}:")
+
+    if [ ${bridge_exists} -eq 0 ]; then
+        brctl addbr ${bridge_ifname}
+    fi
+
     brctl stp ${bridge_ifname} on
     let exit_code+=${?}
 
@@ -110,9 +115,16 @@ fi
 
 # 4 - Give that bridge an IP
 if [ ${exit_code} -eq ${SUCCESS} ]; then
-    ifconfig ${bridge_ifname} up                                                                         &&
-    ifconfig ${bridge_ifname} ${option_routers} netmask ${netmask} broadcast ${option_broadcast_address} &&
-    route add -net ${dhcp_range}/${short_netmask} gw ${option_routers} dev ${bridge_ifname}
+    let bridge_up=$(ifconfig | egrep -c "^${bridge_ifname}:")
+
+    if [ ${bridge_up} -eq 0 ]; then
+        ifconfig ${bridge_ifname} up                                                                         &&
+        ifconfig ${bridge_ifname} ${option_routers} netmask ${netmask} broadcast ${option_broadcast_address} &&
+        route add -net ${dhcp_range}/${short_netmask} gw ${option_routers} dev ${bridge_ifname}
+    else
+        true
+    fi
+
     let exit_code+=${?}
 
     echo "RC.LOCAL - STEP 4 - exit code=${exit_code}" >> /tmp/rc.local.log
