@@ -11,7 +11,8 @@ ERROR=1
 exit_code=${SUCCESS}
 
 hostapd_systemd_template="/etc/default/hostapd-systemd.template"
-hostapd_template="/etc/default/hostapd.template"
+hostapd_24_template="/etc/default/hostapd.2.4.template"
+hostapd_50_template="/etc/default/hostapd.5.0.template"
 radio_vif_config="/etc/default/radio_vifs"
 eths_down="/etc/default/eths_down"
 
@@ -133,6 +134,19 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
         let hostapd_vif_check=$(ifconfig -a | egrep -c "^${hostapd_vif}:")
         
         if [ ${hostapd_vif_check} -eq 0 ]; then
+
+            # What radio template should we use?
+            case ${ap_hw_mode} in
+
+                a)
+                    hostapd_template="${hostapd_50_template}"
+                ;;
+
+                *)
+                    hostapd_template="${hostapd_24_template}"
+                ;;
+
+            esac
 
             # Disable any nics defined in '${eths_down}'
             if [ -s "${eths_down}" ]; then

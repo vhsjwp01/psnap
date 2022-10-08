@@ -1,3 +1,5 @@
+## Template for hostapd @ 2.4 GHz
+
 # Wireless interface
 interface=::RADIO_VIF::
 
