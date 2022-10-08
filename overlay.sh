@@ -78,6 +78,7 @@ if [ -d "${this_dir}/overlay" ]; then
             ;;
 
             radio_vifs)
+                ap_channel="0"
                 ap_hw_mode="g"
                 ap_passphrase=$(echo -ne "${wifi_pass_phrase}" | base64)
                 frequency="2.4"
@@ -86,7 +87,7 @@ if [ -d "${this_dir}/overlay" ]; then
 
                 let supports_5GHz=$(iw ${iw_phy_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
 
-                if [ ${supports_5GHz=} -gt 0 ]; then
+                if [ ${supports_5GHz} -gt 0 ]; then
                     ap_hw_mode="a"
                     frequency="5.0"
                 fi
@@ -95,7 +96,7 @@ if [ -d "${this_dir}/overlay" ]; then
                 ap_bridge="$(for word in $(echo "${ap_ssid}" | tr '[A-Z]' '[a-z]'| sed -e 's|[_-]| |g') ; do echo -ne "$(echo "${word}" | cut -c1)" ; done)-bridge"
 
                 # <physical_radio_device>:<radio_vif>:<ap_bridge>:<ap_ssid>:<ap_hw_mode>:<ap_channel>:<ap_passphrase base64 encoded>
-                copy_command="cp '${overlay_file}' '${target_path}/${target_file}' && echo '${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:0:${ap_passphrase}' >> '${target_path}/${target_file}'"
+                copy_command="cp '${overlay_file}' '${target_path}/${target_file}' && echo '${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:${ap_hw_mode}:${ap_channel}:${ap_passphrase}' >> '${target_path}/${target_file}'"
             ;;
 
             *)
