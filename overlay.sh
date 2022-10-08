@@ -123,7 +123,7 @@ if [ -d "${this_dir}/overlay" ]; then
                 iw_device_index=$(iw ${raw_wifi_nic} info | awk '/wiphy/ {print $NF}')
                 physical_radio_device="phy${iw_device_index}"
 
-                let supports_5GHz=$(iw ${iw_phy_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
+                let supports_5GHz=$(iw ${physical_radio_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
 
                 if [ ${supports_5GHz} -gt 0 ]; then
                     ap_hw_mode="a"
