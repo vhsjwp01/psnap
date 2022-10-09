@@ -126,4 +126,4 @@ ieee80211n=1
 # https://w1.fi/cgit/hostap/plain/hostapd/hostapd.conf
 # https://wireless.wiki.kernel.org/en/users/documentation/hostapd
 # https://bugzilla.redhat.com/show_bug.cgi?id=1200496
-
+# https://wiki.gentoo.org/wiki/Hostapd#802.11a.2Fn.2Fac_with_WPA2-PSK_and_CCMP
