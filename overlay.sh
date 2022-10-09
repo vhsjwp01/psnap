@@ -126,11 +126,47 @@ if [ -d "${this_dir}/overlay" ]; then
                 let supports_5GHz=$(iw ${physical_radio_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
 
                 if [ ${supports_5GHz} -gt 0 ]; then
-                    ap_hw_mode="a"
-                    frequency="5.0"
+                    echo
+                    echo "This radio '${raw_wifi_nic}' supports both 2.4 GHz and 5.0 GHz operation"
+
+                    while [ -z "${frequency_index}" ]; do
+                        echo
+                        echo "    1: 2.4 GHz"
+                        echo "    2: 5.0 GHz"
+                        echo
+                        read -p "Select the operating band: " frequency_index
+                        frequency_index=$(echo "${frequency_index}" | sed -e 's|[^0-9]||g')
+
+                        if [ -n "${frequency_index}" ]; then
+
+                            case ${frequency_index} in
+
+                                1)
+                                    true
+                                ;;
+
+                                2)
+                                    ap_hw_mode="a"
+                                    frequency="5.0"
+                                ;;
+
+                                *)
+                                    frequency_index==""
+                                    echo "    invalid choice ... please choose again"
+                                    echo
+                                ;;
+
+                            esac
+
+                        else
+                            echo "    Uplink interface choice cannot be blank ... please choose again"
+                        fi
+
+                    done
+            
                 fi
 
-                radio_vif="radio${iw_device_infex}-${frequency}"
+                radio_vif="radio${iw_device_index}-${frequency}"
                 ap_bridge="$(for word in $(echo "${ap_ssid}" | tr '[A-Z]' '[a-z]'| sed -e 's|[_-]| |g') ; do echo -ne "$(echo "${word}" | cut -c1)" ; done)-bridge"
 
                 # <physical_radio_device>:<radio_vif>:<ap_bridge>:<ap_ssid>:<ap_hw_mode>:<ap_channel>:<ap_passphrase base64 encoded>
