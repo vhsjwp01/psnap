@@ -26,7 +26,7 @@ while [ -z "${uplink_nic_index}" ]; do
 
     if [ -n "${uplink_nic_index}" ]; then
 
-        if [ 0 -le ${uplink_nic_index} -a ${uplink_nic_index} -le ${#nics[*]} ]; then
+        if [ 0 -le ${uplink_nic_index} -a ${uplink_nic_index} -lt ${#nics[*]} ]; then
             true
         else
             uplink_nic_index=""
@@ -90,6 +90,9 @@ while [ -z "${wifi_pass_phrase}" ]; do
     read -p "Enter the WI-FI passphrase you want to use: " wifi_pass_phrase
 done
 
+wifi_creds="/etc/default/wifi_creds"
+echo "${wifi_pass_phrase}" > "${wifi_creds}"
+chmod 400 "${wifi_creds}"
 
 echo
 
@@ -116,9 +119,9 @@ if [ -d "${this_dir}/overlay" ]; then
             ;;
 
             radio_vifs)
-                ap_channel="0"
+                ap_channel=""
                 ap_hw_mode="g"
-                ap_passphrase=$(echo -ne "${wifi_pass_phrase}" | base64)
+                ap_passphrase=$(awk '{print $0}' "${wifi_creds}" | base64)
                 frequency="2.4"
                 iw_device_index=$(iw ${raw_wifi_nic} info | awk '/wiphy/ {print $NF}')
                 physical_radio_device="phy${iw_device_index}"
@@ -143,11 +146,13 @@ if [ -d "${this_dir}/overlay" ]; then
 
                                 1)
                                     true
+                                    my_channels=$(iw phy phy0 info | egrep "* 2[0-9]* .* \[[0-9]\]*")
                                 ;;
 
                                 2)
                                     ap_hw_mode="a"
                                     frequency="5.0"
+                                    my_channels=$(iw phy phy0 info | egrep "* 5[0-9]* .* \[[0-9]\]*")
                                 ;;
 
                                 *)
@@ -166,11 +171,49 @@ if [ -d "${this_dir}/overlay" ]; then
             
                 fi
 
+                channels=(${my_channels})
+
+                while [ -z "${ap_channel}" ]; do
+                    let counter=0
+                    echo
+
+                    for channel in ${channels[*]} ; do
+                        echo "    ${counter}: Channel ${channel}"
+                        let counter+=1
+                    done
+
+                    read -p "Select the operating band: " ap_channel_index
+                    ap_channel_index=$(echo "${ap_channel_index}" | sed -e 's|[^0-9]||g')
+
+                    if [ -n "${ap_channel_index}" ]; then
+
+                        if [ 0 -le ${ap_channel_index} -a ${ap_channel_index} -lt ${#channels[*]} ]; then
+                            true
+                        else
+                            ap_channel_index=""
+                            echo "    invalid choice ... please choose again"
+                            echo
+                        fi
+
+                    else
+                        echo "    AP channel selection cannot be blank ... please choose again"
+                    fi
+
+                done
+
+                ap_channel="${channels[$ap_channel_index]}"
                 radio_vif="radio${iw_device_index}-${frequency}"
                 ap_bridge="$(hostname | awk -F'.' '{print $1}')-bridge"
 
                 # <physical_radio_device>:<radio_vif>:<ap_bridge>:<ap_ssid>:<ap_hw_mode>:<ap_channel>:<ap_passphrase base64 encoded>
                 copy_command="cp '${overlay_file}' '${target_path}/${target_file}' && echo '${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:${ap_hw_mode}:${ap_channel}:${ap_passphrase}' >> '${target_path}/${target_file}'"
+
+                # Put useful things in /etc/motd
+                echo "WIFI Access Point ${hostname}"     >  /etc/motd
+                echo "              SSID: ${ap_ssid}"    >> /etc/motd
+                echo "         Frequency: ${frequency}"  >> /etc/motd
+                echo "           Channel: ${ap_channel}" >> /etc/motd
+                echo "    Hard Ware Mode: ${ap_hw_mode}" >> /etc/motd
             ;;
 
             *)
@@ -189,8 +232,7 @@ fi
 
 if [ -e /lib/systemd/system/rc-local-psnap.service ]; then
     echo "  Enabling rc.local PSNAP edition"
-    systemctl enable rc-local-psnap
-
+    systemctl enable rc-local-psnap > /dev/null 2>&1
 
     echo
     echo "Please reboot this node for the WiFi to start up properly"
