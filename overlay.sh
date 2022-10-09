@@ -173,7 +173,7 @@ if [ -d "${this_dir}/overlay" ]; then
 
                 channels=(${my_channels})
 
-                while [ -z "${ap_channel}" ]; do
+                while [ -z "${ap_channel_index}" ]; do
                     let counter=0
                     echo
 
