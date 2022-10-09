@@ -167,7 +167,7 @@ if [ -d "${this_dir}/overlay" ]; then
                 fi
 
                 radio_vif="radio${iw_device_index}-${frequency}"
-                ap_bridge="$(for word in $(echo "${ap_ssid}" | tr '[A-Z]' '[a-z]'| sed -e 's|[_-]| |g') ; do echo -ne "$(echo "${word}" | cut -c1)" ; done)-bridge"
+                ap_bridge="$(hostname | awk -F'.' '{print $1}')-bridge"
 
                 # <physical_radio_device>:<radio_vif>:<ap_bridge>:<ap_ssid>:<ap_hw_mode>:<ap_channel>:<ap_passphrase base64 encoded>
                 copy_command="cp '${overlay_file}' '${target_path}/${target_file}' && echo '${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:${ap_hw_mode}:${ap_channel}:${ap_passphrase}' >> '${target_path}/${target_file}'"
@@ -185,6 +185,15 @@ if [ -d "${this_dir}/overlay" ]; then
 
     done
 
+fi
+
+if [ -e /lib/systemd/system/rc-local-psnap.service ]; then
+    echo "  Enabling rc.local PSNAP edition"
+    systemctl enable rc-local-psnap
+
+
+    echo
+    echo "Please reboot this node for the WiFi to start up properly"
 fi
 
 exit 0

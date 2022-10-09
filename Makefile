@@ -12,8 +12,7 @@ install:
 	case "${PLATFORM}" in                                             \
 	    Darwin|Linux)                                                 \
 	        make prep                                              && \
-	        make overlay                                           && \
-		systemctl enable rc-local-psnap.service                   \
+	        make overlay                                              \
 	    ;;                                                            \
 	    *)                                                            \
 	        echo "Unknown (and unsupported) platform: ${PLATFORM}"    \
