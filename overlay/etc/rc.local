@@ -35,7 +35,7 @@ done
 
 # 1 - Run dhclient against our uplink NIC
 if [ ${exit_code} -eq ${SUCCESS} ]; then
-    short_hostname=$(hostname | awk -F'.' '{print $1}')
+    short_hostname=$(hostname -s | tr '[A-Z]' '[a-z]')
 
     if [ -e "/etc/default/relevant_nics" ]; then
         source "/etc/default/relevant_nics" &&
@@ -99,7 +99,7 @@ fi
 
 # 3 - Create a bridge for LAN traffic
 if [ ${exit_code} -eq ${SUCCESS} ]; then
-    bridge_ifname="${short_hostname}-bridge"
+    bridge_ifname="$(echo "${short_hostname}" | sed -e 's|[^a-z0-9]||g' | cut -c-8)-br"
 
     let bridge_exists=$(ifconfig -a | egrep -c "^${bridge_ifname}:")
 
@@ -162,7 +162,7 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
 
             # Disable any nics defined in '${eths_down}'
             if [ -s "${eths_down}" ]; then
-                eths_to_disable=$(ifconfig | egrep $(egrep -v "^#" "${eths_down}") | awk -F':' '{print $1}')
+                eths_to_disable=$(ifconfig | egrep $(egrep -v "^#" "${eths_down}") 2> /dev/null | awk -F':' '{print $1}')
 
                 if [ -n "${eths_to_disable}" ]; then
 

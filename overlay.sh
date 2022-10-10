@@ -203,7 +203,8 @@ if [ -d "${this_dir}/overlay" ]; then
 
                 ap_channel="${channels[$ap_channel_index]}"
                 radio_vif="radio${iw_device_index}-${frequency}"
-                ap_bridge="$(hostname | awk -F'.' '{print $1}')-bridge"
+                short_hostname=$(hostname -s | tr '[A-Z]' '[a-z]')
+                ap_bridge="$(echo "${short_hostname}" | sed -e 's|[^a-z0-9]||g' | cut -c-8)-br"
 
                 # <physical_radio_device>:<radio_vif>:<ap_bridge>:<ap_ssid>:<ap_hw_mode>:<ap_channel>:<ap_passphrase base64 encoded>
                 copy_command="cp '${overlay_file}' '${target_path}/${target_file}' && echo '${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:${ap_hw_mode}:${ap_channel}:${ap_passphrase}' >> '${target_path}/${target_file}'"
