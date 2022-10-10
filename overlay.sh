@@ -125,7 +125,7 @@ if [ -d "${this_dir}/overlay" ]; then
                 frequency="2.4"
                 iw_device_index=$(iw ${raw_wifi_nic} info | awk '/wiphy/ {print $NF}')
                 physical_radio_device="phy${iw_device_index}"
-                my_channels=$(iw phy ${physical_radio_device} info | awk '/* 2[0-9]* .* \[[0-9]*\]/ {if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
+                my_channels=$(iw phy ${physical_radio_device} info | egrep "* 2[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
 
                 let supports_5GHz=$(iw ${physical_radio_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
 
@@ -152,7 +152,7 @@ if [ -d "${this_dir}/overlay" ]; then
                                 2)
                                     ap_hw_mode="a"
                                     frequency="5.0"
-                                    my_channels=$(iw phy ${physical_radio_device} info | awk '/* (4|5)[0-9]* .* \[[0-9]*\]/ {if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
+                                    my_channels=$(iw phy ${physical_radio_device} info | egrep "* (4|5)[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
                                 ;;
 
                                 *)
