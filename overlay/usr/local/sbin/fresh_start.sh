@@ -253,7 +253,7 @@ short_hostname=$(hostname -s | tr '[A-Z]' '[a-z]')
 ap_bridge="$(echo "${short_hostname}" | sed -e 's|[^a-z0-9]||g' | cut -c-8)-br"
 
 # <physical_radio_device>:<radio_vif>:<ap_bridge>:<ap_ssid>:<ap_hw_mode>:<ap_channel>:<ap_passphrase base64 encoded>
-echo '${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:${ap_hw_mode}:${ap_channel}:${ap_passphrase}' >> /etc/default/radio_vifs
+echo "${physical_radio_device}:${radio_vif}:${ap_bridge}:${ap_ssid}:${ap_hw_mode}:${ap_channel}:${ap_passphrase}" >> /etc/default/radio_vifs
 
 # Put useful things in /etc/motd
 echo "WIFI Access Point ${hostname}"     >  /etc/motd
