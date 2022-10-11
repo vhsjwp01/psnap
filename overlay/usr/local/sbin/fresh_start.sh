@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 
 PATH="/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin"
 TERM="vt100"
@@ -59,12 +59,12 @@ done
 
 # 7. Re-scan the usb buses
 usb_sys_tree="/sys/bus/usb/drivers/usb"
-my_usb_buses=$(ls -al ${usb_sys_tree=}/usb* | awk -F'/' '{print $(NF-1)}' | sort -u)
+my_usb_buses=$(ls -al ${usb_sys_tree}/usb* | awk -F'/' '{print $(NF-1)}' | sort -u)
 
 for usb_bus in ${my_usb_buses} ; do
-    echo -n "${usb_bus}" > ${usb_sys_tree=}/unbind
+    echo -n "${usb_bus}" > ${usb_sys_tree}/unbind
     sleep 1
-    echo -n "${usb_bus}" > ${usb_sys_tree=}/bind
+    echo -n "${usb_bus}" > ${usb_sys_tree}/bind
 done
 
 # 8. Re-Run the setup
