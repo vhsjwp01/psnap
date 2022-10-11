@@ -26,10 +26,10 @@ echo "Purging virtual radio mappings"
 sed /^phy[0-9].*$/d /etc/default/radio_vifs
 
 # 5. Remove the bridge
-my_bridges=$(brctl show | egrep "^[a-z0-9]" | egrep -v "^bridge name" | awk '{print $1}')
+my_bridges=$(brctl show | egrep "^[a-z0-9]" | egrep -v "^bridge name" | awk '{print $1}' | sort -u)
 
 for bridge in ${my_bridges} ; do
-    bridge_members=$(brctl show ${bridge} | egrep -v "^bridge name" | awk '{print $NF}')
+    bridge_members=$(brctl show ${bridge} | egrep -v "^bridge name" | awk '{print $NF}' | sort -u)
 
     for bridge_member in ${bridge_members} ; do
         brctl delif ${bridge} ${bridge_member}
@@ -39,7 +39,7 @@ for bridge in ${my_bridges} ; do
 done
 
 # 6. Tear down all wifi related network devices
-all_interfaces=$(ifconfig -a | egrep "^[a-z0-9]*:" | awk -F':' '{print $1}')
+all_interfaces=$(ifconfig -a | egrep "^[a-z0-9]*:" | awk -F':' '{print $1}' | sort -u)
 all_wifi_interfaces=""
 all_bridge_interfaces=""
 
@@ -59,7 +59,7 @@ done
 
 # 7. Re-scan the usb buses
 usb_sys_tree="/sys/bus/usb/drivers/usb"
-my_usb_buses=$(ls -al ${usb_sys_tree=}/usb* | awk -F'/' '{print $(NF-1)}')
+my_usb_buses=$(ls -al ${usb_sys_tree=}/usb* | awk -F'/' '{print $(NF-1)}' | sort -u)
 
 for usb_bus in ${my_usb_buses} ; do
     echo -n "${usb_bus}" > ${usb_sys_tree=}/unbind
@@ -71,7 +71,7 @@ done
 echo "Re-running WIFI setup"
 echo
 
-my_nics=$(ifconfig -a | awk -F':' '/^[a-z]/ {print $1}')
+my_nics=$(ifconfig -a | awk -F':' '/^[a-z]/ {print $1}' | sort -u)
 
 nics=(${my_nics})
 
