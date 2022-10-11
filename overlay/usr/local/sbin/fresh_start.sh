@@ -170,6 +170,7 @@ ap_passphrase=$(awk '{print $0}' "${wifi_creds}" | base64)
 frequency="2.4"
 iw_device_index=$(iw ${raw_wifi_nic} info | awk '/wiphy/ {print $NF}')
 physical_radio_device="phy${iw_device_index}"
+my_channels=$(iw phy ${physical_radio_device} info | egrep "* 2[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
 
 let supports_5GHz=$(iw ${physical_radio_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
 
@@ -191,13 +192,12 @@ if [ ${supports_5GHz} -gt 0 ]; then
 
                 1)
                     true
-                    my_channels=$(iw phy phy0 info | egrep "* 2[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
                 ;;
 
                 2)
                     ap_hw_mode="a"
                     frequency="5.0"
-                    my_channels=$(iw phy phy0 info | egrep "* (4|5)[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
+                    my_channels=$(iw phy ${physical_radio_device} info | egrep "* (4|5)[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
                 ;;
 
                 *)
