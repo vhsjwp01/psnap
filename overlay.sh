@@ -238,6 +238,10 @@ if [ -e /lib/systemd/system/rc-local-psnap.service ]; then
     systemctl enable rc-local-psnap > /dev/null 2>&1
 
     echo
+    echo "Settings things up"
+    /etc/rc.local
+
+    echo
     echo "Please reboot this node for the WiFi to start up properly"
 fi
 
