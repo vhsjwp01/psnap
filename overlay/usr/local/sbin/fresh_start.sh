@@ -15,15 +15,15 @@ done
 
 # 2. Remove custom hostapd service files from /lib/systemd/system
 echo "Removing custom hostapd service files"
-rm -f /lib/systemd/system/hostapd-radio*
+rm -f /lib/systemd/system/hostapd-radio* > /dev/null 2>&1
 
 # 3. Remove custom hostapd configuration files from /etc/hostapd
 echo "Removing custom hostapd configuration files"
-rm /etc/hostapd/hostapd-radio*
+rm /etc/hostapd/hostapd-radio* > /dev/null 2>&1
 
 # 4. Blank /etc/default/radio_vifs
 echo "Purging virtual radio mappings"
-sed /^phy[0-9].*$/d /etc/default/radio_vifs
+sed -i /^phy[0-9].*$/d /etc/default/radio_vifs > /dev/null 2>&1
 
 # 5. Remove the bridge
 my_bridges=$(brctl show | egrep "^[a-z0-9]" | egrep -v "^bridge name" | awk '{print $1}' | sort -u)
@@ -32,10 +32,11 @@ for bridge in ${my_bridges} ; do
     bridge_members=$(brctl show ${bridge} | egrep -v "^bridge name" | awk '{print $NF}' | sort -u)
 
     for bridge_member in ${bridge_members} ; do
-        brctl delif ${bridge} ${bridge_member}
+        brctl delif ${bridge} ${bridge_member} > /dev/null 2>&1
     done
 
-    brctl delbr ${bridge}
+    ifconfig ${bridge} down > /dev/null 2>&1
+    brctl delbr ${bridge} > /dev/null 2>&1
 done
 
 # 6. Tear down all wifi related network devices
@@ -59,12 +60,12 @@ done
 
 # 7. Re-scan the usb buses
 usb_sys_tree="/sys/bus/usb/drivers/usb"
-my_usb_buses=$(ls -al ${usb_sys_tree}/usb* | awk -F'/' '{print $(NF-1)}' | sort -u)
+my_usb_buses=$(ls -al ${usb_sys_tree}/usb* | awk -F '->' '{print $NF}' | awk -F'/' '{print $7}' | sort -u)
 
 for usb_bus in ${my_usb_buses} ; do
-    echo -n "${usb_bus}" > ${usb_sys_tree}/unbind
+    echo -n "${usb_bus}" > ${usb_sys_tree}/unbind > /dev/null 2>&1
     sleep 1
-    echo -n "${usb_bus}" > ${usb_sys_tree}/bind
+    echo -n "${usb_bus}" > ${usb_sys_tree}/bind > /dev/null 2>&1
 done
 
 # 8. Re-Run the setup
