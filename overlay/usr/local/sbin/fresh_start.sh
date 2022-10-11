@@ -191,13 +191,13 @@ if [ ${supports_5GHz} -gt 0 ]; then
 
                 1)
                     true
-                    my_channels=$(iw phy phy0 info | awk '/* 2[0-9]* .* \[[0-9]*\]/ {if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
+                    my_channels=$(iw phy phy0 info | egrep "* 2[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
                 ;;
 
                 2)
                     ap_hw_mode="a"
                     frequency="5.0"
-                    my_channels=$(iw phy phy0 info | awk '/* (4|5)[0-9]* .* \[[0-9]*\]/ {if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
+                    my_channels=$(iw phy phy0 info | egrep "* (4|5)[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
                 ;;
 
                 *)
@@ -227,6 +227,7 @@ while [ -z "${ap_channel_index}" ]; do
         let counter+=1
     done
 
+    echo
     read -p "Select the operating band: " ap_channel_index
     ap_channel_index=$(echo "${ap_channel_index}" | sed -e 's|[^0-9]||g')
 
