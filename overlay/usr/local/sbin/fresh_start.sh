@@ -25,7 +25,49 @@ rm /etc/hostapd/hostapd-radio*
 echo "Purging virtual radio mappings"
 sed /^phy[0-9].*$/d /etc/default/radio_vifs
 
-# 5. Re-Run the setup
+# 5. Remove the bridge
+my_bridges=$(brctl show | egrep "^[a-z0-9]" | egrep -v "^bridge name" | awk '{print $1}')
+
+for bridge in ${my_bridges} ; do
+    bridge_members=$(brctl show ${bridge} | egrep -v "^bridge name" | awk '{print $NF}')
+
+    for bridge_member in ${bridge_members} ; do
+        brctl delif ${bridge} ${bridge_member}
+    done
+
+    brctl delbr ${bridge}
+done
+
+# 6. Tear down all wifi related network devices
+all_interfaces=$(ifconfig -a | egrep "^[a-z0-9]*:" | awk -F':' '{print $1}')
+all_wifi_interfaces=""
+all_bridge_interfaces=""
+
+# tear down wifi aliases first
+for interface in ${all_interfaces} ; do
+    let is_wifi=$(iw ${interface} info 2> /dev/null | egrep -c "\bwiphy\b")
+
+    if [ ${is_wifi} -gt 0 ]; then
+        all_wifi_interfaces+="${interface} "
+    fi
+
+done
+
+for wifi_interface in ${all_wifi_interfaces} ; do
+    iw dev ${wifi_interface} delete > /dev/null 2>&1
+done
+
+# 7. Re-scan the usb buses
+usb_sys_tree="/sys/bus/usb/drivers/usb"
+my_usb_buses=$(ls -al ${usb_sys_tree=}/usb* | awk -F'/' '{print $(NF-1)}')
+
+for usb_bus in ${my_usb_buses} ; do
+    echo -n "${usb_bus}" > ${usb_sys_tree=}/unbind
+    sleep 1
+    echo -n "${usb_bus}" > ${usb_sys_tree=}/bind
+done
+
+# 8. Re-Run the setup
 echo "Re-running WIFI setup"
 echo
 
