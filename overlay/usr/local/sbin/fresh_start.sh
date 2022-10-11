@@ -162,7 +162,7 @@ chmod 400 "${wifi_creds}"
 echo
 
 # setup relevant nics
-sed -e 's|^\(uplink_nic\)=.*$|\1=${uplink_nic}|g' -e 's|^\(raw_wifi_nic\)=.*$|\1=${raw_wifi_nic}|g' /etc/default/relevant_nics
+sed -i -e "s|^\(uplink_nic\)=.*$|\1=${uplink_nic}|g" -e "s|^\(raw_wifi_nic\)=.*$|\1=${raw_wifi_nic}|g" /etc/default/relevant_nics
 
 ap_channel=""
 ap_hw_mode="g"
