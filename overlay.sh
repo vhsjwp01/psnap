@@ -182,6 +182,7 @@ if [ -d "${this_dir}/overlay" ]; then
                         let counter+=1
                     done
 
+                    echo
                     read -p "Select the operating band: " ap_channel_index
                     ap_channel_index=$(echo "${ap_channel_index}" | sed -e 's|[^0-9]||g')
 
@@ -232,7 +233,8 @@ if [ -d "${this_dir}/overlay" ]; then
 fi
 
 if [ -e /lib/systemd/system/rc-local-psnap.service ]; then
-    echo "  Enabling rc.local PSNAP edition"
+    echo
+    echo "Enabling rc.local PSNAP edition"
     systemctl enable rc-local-psnap > /dev/null 2>&1
 
     echo
