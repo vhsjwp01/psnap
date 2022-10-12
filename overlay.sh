@@ -239,7 +239,7 @@ if [ -e /lib/systemd/system/rc-local-psnap.service ]; then
 
     echo
     echo "Settings things up"
-    /etc/rc.local
+    /etc/rc.local > /dev/null 2>&1
 
     echo
     echo "Please reboot this node for the WiFi to start up properly"
