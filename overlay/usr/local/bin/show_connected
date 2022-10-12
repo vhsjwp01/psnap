@@ -36,10 +36,16 @@ if [ -n "${radio_vifs}" ]; then
 
     for radio_vif in ${radio_vifs} ; do
         cmd=$(echo "${cmd}" | sed -e "s|::radio::|${radio_vif}|g")
+        channel=$(awk -F'=' '/^channel=/ {print $NF}' /etc/hostapd/hostapd-${radio_vif}..conf 2> /dev/null)
         echo
         echo "------------------------------------------------------------"
         echo "Host: $(hostname)"
         echo "Radio: ${radio_vif}"
+
+        if [ -n "${channel}" ]; then
+            echo "Channel: $(channel)"
+        fi
+
         echo "Timestamp: $(date)"
         echo "------------------------------------------------------------"
         eval "${cmd} ${cmd_args}"
