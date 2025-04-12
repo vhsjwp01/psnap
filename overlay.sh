@@ -125,9 +125,9 @@ if [ -d "${this_dir}/overlay" ]; then
                 frequency="2.4"
                 iw_device_index=$(iw ${raw_wifi_nic} info | awk '/wiphy/ {print $NF}')
                 physical_radio_device="phy${iw_device_index}"
-                my_channels=$(iw phy ${physical_radio_device} info | egrep "* 2[0-9]* .* \[[0-9]*\]" | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
+                my_channels=$(iw phy ${physical_radio_device} info | egrep "* 2[0-9]* .* \[[0-9]*\]" 2> /dev/null | awk '{if ($NF != "detection)" && $NF != "(disabled)") print $4}' | sed -e 's|[^0-9]||g')
 
-                let supports_5GHz=$(iw ${physical_radio_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]")
+                let supports_5GHz=$(iw ${physical_radio_device} info | egrep -c "* 5[0-9]* .* \[[0-9]*\]" 2> /dev/null)
 
                 if [ ${supports_5GHz} -gt 0 ]; then
                     echo
@@ -183,7 +183,7 @@ if [ -d "${this_dir}/overlay" ]; then
                     done
 
                     echo
-                    read -p "Select the operating band: " ap_channel_index
+                    read -p "Select the operating channel: " ap_channel_index
                     ap_channel_index=$(echo "${ap_channel_index}" | sed -e 's|[^0-9]||g')
 
                     if [ -n "${ap_channel_index}" ]; then
